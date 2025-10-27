@@ -1,6 +1,6 @@
 ### A Lightweight Intrusion Detection System for IoT: Detecting SYN Flood
 
-A comprehensive full-stack application for monitoring and analyzing network attacks in IoT environments, with a particular focus on SYN flood detection and visualization. This system provides real-time monitoring, historical analysis, and detailed attack insights through an intuitive dashboard interface.
+A comprehensive full-stack application for monitoring and analyzing network attacks in IoT environments, with a particular focus on SYN flood detection and visualization. This system provides real-time monitoring, historical analysis, and detailed attack insights through an intuitive dashboard interface and listings.
 
 ## Features
 
