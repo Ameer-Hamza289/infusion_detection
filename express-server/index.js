@@ -2,8 +2,7 @@ const app = require('express')();
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const morgan = require('morgan');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const mongoose = require('mongoose');
 require("dotenv").config();
 
 // Middleware setup
@@ -12,34 +11,41 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
-// Initialize SQLite database
-const dbPath = path.join(__dirname, 'insights.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database:', err.message);
-    } else {
-        console.log('Connected to SQLite database');
-        // Create insights table if it doesn't exist
-        db.run(`
-            CREATE TABLE IF NOT EXISTS insights (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                attack_session_id TEXT,
-                insights TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `, (err) => {
-            if (err) {
-                console.error('Error creating table:', err.message);
-            } else {
-                console.log('Insights table ready');
-                // Add attack_session_id column if it doesn't exist (for existing databases)
-                db.run(`ALTER TABLE insights ADD COLUMN attack_session_id TEXT`, (err) => {
-                    // Ignore error if column already exists
-                });
-            }
-        });
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ids_insights';
+
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+.then(() => {
+    console.log('✅ Connected to MongoDB');
+    console.log(`   Database: ${MONGODB_URI}`);
+})
+.catch((err) => {
+    console.error('❌ MongoDB connection error:', err.message);
+    console.error('   Make sure MongoDB is running or set MONGODB_URI in .env file');
+});
+
+// MongoDB Schema
+const insightSchema = new mongoose.Schema({
+    attack_session_id: {
+        type: String,
+        required: true,
+        index: true // Add index for faster queries
+    },
+    insights: {
+        type: [String], // Array of chart URLs
+        required: true
+    },
+    created_at: {
+        type: Date,
+        default: Date.now
     }
 });
+
+// Create model
+const Insight = mongoose.model('Insight', insightSchema);
 
 // Sample route
 app.get('/', (req, res) => {
@@ -47,18 +53,21 @@ app.get('/', (req, res) => {
 });
 
 // Get all insights
-app.get('/api/data', (req, res) => {
-    db.all('SELECT * FROM insights ORDER BY created_at DESC', (err, rows) => {
-        if (err) {
-            console.error('Error fetching insights:', err.message);
-            return res.status(500).json({ error: 'Failed to fetch insights' });
-        }
-        res.json({ insights: rows });
-    });
+app.get('/api/data', async (req, res) => {
+    try {
+        const insights = await Insight.find()
+            .sort({ created_at: -1 })
+            .lean();
+
+        res.json({ insights });
+    } catch (err) {
+        console.error('Error fetching insights:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch insights' });
+    }
 });
 
 // Post insights (array of chart URLs)
-app.post('/api/data', (req, res) => {
+app.post('/api/data', async (req, res) => {
     const { insights, attack_session_id } = req.body;
     console.log('Received insights:', req.body);
 
@@ -71,44 +80,109 @@ app.post('/api/data', (req, res) => {
     const sessionId = attack_session_id || `session_${Date.now()}`;
     console.log(`Received ${insights.length} insights/charts for session: ${sessionId}`);
 
-    // Store insights as JSON string
-    const insightsJson = JSON.stringify(insights);
+    try {
+        // Create new insight document
+        const newInsight = new Insight({
+            attack_session_id: sessionId,
+            insights: insights, // MongoDB stores arrays directly
+            created_at: new Date()
+        });
 
-    db.run(
-        'INSERT INTO insights (attack_session_id, insights) VALUES (?, ?)',
-        [sessionId, insightsJson],
-        function(err) {
-            if (err) {
-                console.error('Error inserting insights:', err.message);
-                return res.status(500).json({ error: 'Failed to store insights' });
-            }
+        const savedInsight = await newInsight.save();
 
-            console.log(`Insights stored with ID: ${this.lastID} for session: ${sessionId}`);
-            res.json({
-                success: true,
-                message: `Successfully stored ${insights.length} insights`,
-                id: this.lastID,
-                session_id: sessionId,
-                count: insights.length
-            });
-        }
-    );
+        console.log(`Insights stored with ID: ${savedInsight._id} for session: ${sessionId}`);
+        res.json({
+            success: true,
+            message: `Successfully stored ${insights.length} insights`,
+            id: savedInsight._id,
+            session_id: sessionId,
+            count: insights.length
+        });
+    } catch (err) {
+        console.error('Error inserting insights:', err.message);
+        return res.status(500).json({ error: 'Failed to store insights' });
+    }
 });
 
 // Get insights by session
-app.get('/api/data/session/:sessionId', (req, res) => {
+app.get('/api/data/session/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
-    db.all(
-        'SELECT * FROM insights WHERE attack_session_id = ? ORDER BY created_at DESC',
-        [sessionId],
-        (err, rows) => {
-            if (err) {
-                console.error('Error fetching insights:', err.message);
-                return res.status(500).json({ error: 'Failed to fetch insights' });
-            }
-            res.json({ insights: rows, session_id: sessionId });
-        }
-    );
+
+    try {
+        const insights = await Insight.find({ attack_session_id: sessionId })
+            .sort({ created_at: -1 })
+            .lean();
+
+        res.json({ insights, session_id: sessionId });
+    } catch (err) {
+        console.error('Error fetching insights:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch insights' });
+    }
+});
+
+// Backward compatibility: /data endpoints (for notebook)
+app.get('/data', async (req, res) => {
+    try {
+        const insights = await Insight.find()
+            .sort({ created_at: -1 })
+            .lean();
+
+        res.json({ insights });
+    } catch (err) {
+        console.error('Error fetching insights:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch insights' });
+    }
+});
+
+app.post('/data', async (req, res) => {
+    const { insights, attack_session_id } = req.body;
+    console.log('Received insights:', req.body);
+
+    if (!insights || !Array.isArray(insights)) {
+        return res.status(400).json({
+            error: 'Invalid request. Expected { insights: [], attack_session_id?: string } with array of URLs'
+        });
+    }
+
+    const sessionId = attack_session_id || `session_${Date.now()}`;
+    console.log(`Received ${insights.length} insights/charts for session: ${sessionId}`);
+
+    try {
+        const newInsight = new Insight({
+            attack_session_id: sessionId,
+            insights: insights,
+            created_at: new Date()
+        });
+
+        const savedInsight = await newInsight.save();
+
+        console.log(`Insights stored with ID: ${savedInsight._id} for session: ${sessionId}`);
+        res.json({
+            success: true,
+            message: `Successfully stored ${insights.length} insights`,
+            id: savedInsight._id,
+            session_id: sessionId,
+            count: insights.length
+        });
+    } catch (err) {
+        console.error('Error inserting insights:', err.message);
+        return res.status(500).json({ error: 'Failed to store insights' });
+    }
+});
+
+app.get('/data/session/:sessionId', async (req, res) => {
+    const { sessionId } = req.params;
+
+    try {
+        const insights = await Insight.find({ attack_session_id: sessionId })
+            .sort({ created_at: -1 })
+            .lean();
+
+        res.json({ insights, session_id: sessionId });
+    } catch (err) {
+        console.error('Error fetching insights:', err.message);
+        return res.status(500).json({ error: 'Failed to fetch insights' });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
@@ -117,13 +191,13 @@ app.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
-    db.close((err) => {
-        if (err) {
-            console.error('Error closing database:', err.message);
-        } else {
-            console.log('Database connection closed');
-        }
+process.on('SIGINT', async () => {
+    try {
+        await mongoose.connection.close();
+        console.log('MongoDB connection closed');
         process.exit(0);
-    });
+    } catch (err) {
+        console.error('Error closing database:', err.message);
+        process.exit(1);
+    }
 });
