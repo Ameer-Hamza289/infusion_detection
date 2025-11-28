@@ -189,6 +189,56 @@ export function LandingPage() {
         </div>
       </div>
 
+      {/* Team Section */}
+      <div className="relative max-w-7xl mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Our Team
+          </h2>
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            Meet the talented individuals behind this project
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Team Lead */}
+          <div className="group p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:bg-white/10 hover:border-indigo-500/50 transition-all transform hover:scale-105 text-center">
+            <div className="inline-flex p-4 bg-indigo-500/20 rounded-full mb-4 group-hover:bg-indigo-500/30 transition-colors">
+              <ShieldCheckIcon className="h-12 w-12 text-indigo-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Amir Shahid</h3>
+            <p className="text-indigo-400 font-semibold mb-4">Team Lead</p>
+            <p className="text-gray-400 leading-relaxed">
+              Leading the development and architecture of the intrusion detection system
+            </p>
+          </div>
+
+          {/* Supervisor */}
+          <div className="group p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:bg-white/10 hover:border-purple-500/50 transition-all transform hover:scale-105 text-center">
+            <div className="inline-flex p-4 bg-purple-500/20 rounded-full mb-4 group-hover:bg-purple-500/30 transition-colors">
+              <LockClosedIcon className="h-12 w-12 text-purple-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Sir Zunurain</h3>
+            <p className="text-purple-400 font-semibold mb-4">Supervisor</p>
+            <p className="text-gray-400 leading-relaxed">
+              Supervisor at Bahria University, providing guidance and oversight for the project
+            </p>
+          </div>
+
+          {/* Programmer */}
+          <div className="group p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:bg-white/10 hover:border-blue-500/50 transition-all transform hover:scale-105 text-center">
+            <div className="inline-flex p-4 bg-blue-500/20 rounded-full mb-4 group-hover:bg-blue-500/30 transition-colors">
+              <BoltIcon className="h-12 w-12 text-blue-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Ali Akram</h3>
+            <p className="text-blue-400 font-semibold mb-4">Programmer</p>
+            <p className="text-gray-400 leading-relaxed">
+              Developing core features and implementing machine learning algorithms
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* CTA Section */}
       <div className="relative max-w-7xl mx-auto px-6 py-20">
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-12 text-center">
