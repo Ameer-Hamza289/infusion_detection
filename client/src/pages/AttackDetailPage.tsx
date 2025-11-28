@@ -164,12 +164,13 @@ export function AttackDetailPage() {
                 key={index}
                 className="group relative bg-gray-50 rounded-lg overflow-hidden border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all duration-200"
               >
-                <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+                <div className="bg-gray-100 flex items-center justify-center p-6 min-h-[300px]">
                   <LazyLoadImage
                     src={`${import.meta.env.VITE_API_URL}/drive-img/${fileId}`}
                     alt={`Chart ${index + 1}`}
                     effect="blur"
-                    className="w-full h-full object-contain"
+                    className="max-w-full max-h-[500px] w-auto h-auto object-contain"
+                    style={{ width: 'auto', height: 'auto' }}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23f3f4f6" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-family="sans-serif" font-size="16"%3EImage not available%3C/text%3E%3C/svg%3E';
