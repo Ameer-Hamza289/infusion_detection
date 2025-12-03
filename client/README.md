@@ -1,6 +1,6 @@
 # IDS Dashboard Client
 
-A beautiful React dashboard for the Intrusion Detection System that displays attack sessions, visualizations, and analytics.
+A beautiful React dashboard for the Intrusion Detection System that displays attack sessions, visualizations, and analytics and admin.
 
 ## Features
 
